@@ -134,32 +134,62 @@
             });
         }
 
-        // 5. Lógica de Envío
+        // 5. Lógica de Envío CON DIAGNÓSTICO
         Telegram.WebApp.onEvent('mainButtonClicked', function(){
+            
+            // DIAGNÓSTICO 1: Ver si el botón responde
+            Telegram.WebApp.showPopup({
+                title: 'Depuración',
+                message: '1. Botón presionado. Buscando empleado...'
+            });
+
             // Validar empleado
             let empSeleccionado = document.querySelector('input[name="empleado"]:checked');
+            
             if (!empSeleccionado) {
-                tg.showPopup({title: 'Error', message: 'Por favor selecciona tu nombre.'});
+                // Si entra aquí, es que no detecta el radio button
+                Telegram.WebApp.showPopup({
+                    title: 'Error',
+                    message: '❌ No se ha seleccionado ningún empleado.'
+                });
                 return;
             }
 
-            // Recolectar EPP
-            let reporteEPP = {};
-            // Recorremos todos los inputs radio marcados dentro del formulario
-            document.querySelectorAll('input.status:checked').forEach(radio => {
-                // Recuperamos el nombre original reemplazando los guiones bajos por espacios
-                let nombreReal = radio.name.replace(/_/g, ' '); 
-                reporteEPP[nombreReal] = radio.value;
-            });
+            // DIAGNÓSTICO 2: Empleado encontrado
+            // (Esto es solo para saber que pasó la validación)
+            // alert("Empleado: " + empSeleccionado.value); 
 
-            let datos = {
-                fecha: document.getElementById("fecha").value,
-                empleado: empSeleccionado.value,
-                epp: reporteEPP,
-                comentarios: document.getElementById("comentarios").value
-            };
-            
-            tg.sendData(JSON.stringify(datos)); 
+            // Recolectar EPP
+            try {
+                let reporteEPP = {};
+                document.querySelectorAll('input.status:checked').forEach(radio => {
+                    let nombreReal = radio.name.replace(/_/g, ' '); 
+                    reporteEPP[nombreReal] = radio.value;
+                });
+
+                let datos = {
+                    fecha: document.getElementById("fecha").value,
+                    empleado: empSeleccionado.value,
+                    epp: reporteEPP,
+                    comentarios: document.getElementById("comentarios").value
+                };
+                
+                // DIAGNÓSTICO 3: Datos listos
+                // alert("Datos listos para enviar. Intentando sendData...");
+
+                // Enviar
+                tg.sendData(JSON.stringify(datos)); 
+                
+                // Cierre manual por si acaso (a veces Android lo necesita)
+                setTimeout(() => { tg.close(); }, 100);
+
+            } catch (error) {
+                // DIAGNÓSTICO 4: Si hay error técnico
+                Telegram.WebApp.showPopup({
+                    title: 'Error Crítico',
+                    message: 'Hubo un error en el código: ' + error.message
+                });
+            }
         });
     </script>
 </body>
