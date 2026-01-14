@@ -16,7 +16,6 @@
         h2 { text-align: center; color: var(--tg-theme-button-color, #2481cc); }
         h4 { margin-top: 20px; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
         
-        /* Estilos del formulario */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input[type="date"], textarea {
@@ -24,18 +23,15 @@
             box-sizing: border-box;
         }
         
-        /* Lista de empleados */
         .empleado-item { margin: 5px 0; display: flex; align-items: center; }
         .empleado-item input { margin-right: 10px; transform: scale(1.2); }
 
-        /* Tablas de EPP */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background-color: #e0e0e0; padding: 8px; text-align: center; font-size: 12px; color: #000;}
         td { padding: 8px; border-bottom: 1px solid #eee; }
         .item-name { width: 40%; font-weight: 500; }
         .opt-col { text-align: center; width: 20%; }
         
-        /* Radio buttons personalizados */
         input[type="radio"].status { transform: scale(1.3); cursor: pointer; }
     </style>
 </head>
@@ -53,26 +49,17 @@
     </div>
 
     <form id="form-epp">
-        
         <h4>🦺 EPP Asignado - 001 (Básico)</h4>
-        <table id="tabla-001">
-            <tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr>
-        </table>
+        <table id="tabla-001"><tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr></table>
 
         <h4>🧤 EPP Asignado - 002 (Específico)</h4>
-        <table id="tabla-002">
-            <tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr>
-        </table>
+        <table id="tabla-002"><tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr></table>
 
         <h4>☣️ EPP Asignado - 003 (Respiratorio)</h4>
-        <table id="tabla-003">
-            <tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr>
-        </table>
+        <table id="tabla-003"><tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr></table>
 
         <h4>🏗️ Trabajos en Altura / Otros</h4>
-        <table id="tabla-004">
-            <tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr>
-        </table>
+        <table id="tabla-004"><tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr></table>
 
         <h4>📝 Comentarios</h4>
         <textarea id="comentarios" rows="3" placeholder="Observaciones adicionales..."></textarea>
@@ -87,7 +74,7 @@
         // 1. Configurar Fecha de hoy
         document.getElementById('fecha').valueAsDate = new Date();
 
-        // 2. Datos para generar el HTML dinámicamente
+        // 2. Datos
         const empleados = [
             "Alberto Hernandez Alvarado - 401661",
             "Alexis Dominguez Ontiveros - 402588",
@@ -107,7 +94,7 @@
             "tabla-004": ["Rodilleras", "Arnés de Seguridad", "Línea de Vida"] 
         };
 
-        // 3. Generar HTML de Empleados
+        // 3. Generar HTML
         const containerEmp = document.getElementById('lista-empleados');
         empleados.forEach((emp, index) => {
             let div = document.createElement('div');
@@ -116,14 +103,11 @@
             containerEmp.appendChild(div);
         });
 
-        // 4. Generar HTML de las Tablas
         for (let [tablaId, items] of Object.entries(gruposEPP)) {
             let table = document.getElementById(tablaId);
             items.forEach(item => {
                 let row = table.insertRow();
-                // Nombre del item
                 row.innerHTML = `<td class="item-name">${item}</td>`;
-                // Opciones (OK, Mal Estado, No Tengo)
                 let safeName = item.replace(/\s+/g, '_'); 
                 row.innerHTML += `
                     <td class="opt-col"><input type="radio" class="status" name="${safeName}" value="OK"></td>
@@ -133,21 +117,15 @@
             });
         }
 
-        // 5. Lógica de Envío FINAL (PRODUCCIÓN)
+        // 4. Lógica de Envío (ESTRATEGIA CANDADO MANUAL)
         Telegram.WebApp.onEvent('mainButtonClicked', function(){
             
-            // 1. Validar empleado
             let empSeleccionado = document.querySelector('input[name="empleado"]:checked');
-            
             if (!empSeleccionado) {
-                Telegram.WebApp.showPopup({
-                    title: 'Falta información',
-                    message: '❌ Por favor, selecciona tu nombre antes de enviar.'
-                });
+                Telegram.WebApp.showPopup({ title: 'Atención', message: '❌ Selecciona tu nombre primero.' });
                 return;
             }
 
-            // 2. Recolectar datos
             try {
                 let reporteEPP = {};
                 document.querySelectorAll('input.status:checked').forEach(radio => {
@@ -162,18 +140,23 @@
                     comentarios: document.getElementById("comentarios").value
                 };
 
-                // 3. ENVIAR (Con espera de 1 segundo para Xiaomi/Poco)
+                // --- PASO CRÍTICO 1: ENVIAR ---
                 tg.sendData(JSON.stringify(datos)); 
                 
-                setTimeout(() => { 
-                    tg.close(); 
-                }, 1000);
+                // --- PASO CRÍTICO 2: OBLIGAR AL USUARIO A ESPERAR ---
+                Telegram.WebApp.showPopup({
+                    title: '✅ Enviado Correctamente',
+                    message: 'Los datos han sido enviados.\n\nPresiona OK para cerrar esta ventana.',
+                    buttons: [{type: 'ok', id: 'btn_cerrar'}]
+                }, function(buttonId) {
+                    // --- PASO CRÍTICO 3: CERRAR SOLO AL CONFIRMAR ---
+                    if (buttonId === 'btn_cerrar') {
+                        tg.close();
+                    }
+                });
 
             } catch (error) {
-                Telegram.WebApp.showPopup({
-                    title: 'Error',
-                    message: 'Error técnico: ' + error.message
-                });
+                Telegram.WebApp.showPopup({ title: 'Error', message: error.message });
             }
         });
     </script>
