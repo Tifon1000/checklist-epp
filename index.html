@@ -50,14 +50,14 @@
 
     <h4>👤 Seleccione su nombre:</h4>
     <div id="lista-empleados">
-        </div>
+    </div>
 
     <form id="form-epp">
         
         <h4>🦺 EPP Asignado - 001 (Básico)</h4>
         <table id="tabla-001">
             <tr><th>Ítem</th><th>OK</th><th>Mal Estado</th><th>No Tengo</th></tr>
-            </table>
+        </table>
 
         <h4>🧤 EPP Asignado - 002 (Específico)</h4>
         <table id="tabla-002">
@@ -104,7 +104,7 @@
             "tabla-001": ["Casco de Seguridad", "Lente de Seguridad", "Camisola", "Playera", "Chaleco", "Guante de Piel", "Pantalón", "Calzado de Seguridad"],
             "tabla-002": ["Lámpara manos libres", "Tapones para oído", "Protector de cuello", "Capucha de Algodón", "Traje Tyvek", "Traje Impermeable", "Guantes de carnaza", "Faja tipo pesista", "Bota industrial hule"],
             "tabla-003": ["Mascarilla media cara", "Cartucho gases/vapores"],
-            "tabla-004": ["Rodilleras", "Arnés de Seguridad", "Línea de Vida"] // Los nuevos que pediste
+            "tabla-004": ["Rodilleras", "Arnés de Seguridad", "Línea de Vida"] 
         };
 
         // 3. Generar HTML de Empleados
@@ -124,7 +124,6 @@
                 // Nombre del item
                 row.innerHTML = `<td class="item-name">${item}</td>`;
                 // Opciones (OK, Mal Estado, No Tengo)
-                // Usamos el nombre del item como identificador del grupo de radio buttons
                 let safeName = item.replace(/\s+/g, '_'); 
                 row.innerHTML += `
                     <td class="opt-col"><input type="radio" class="status" name="${safeName}" value="OK"></td>
@@ -137,7 +136,7 @@
         // 5. Lógica de Envío FINAL (PRODUCCIÓN)
         Telegram.WebApp.onEvent('mainButtonClicked', function(){
             
-            // 1. Validar empleado (Sin alertas, directo al grano)
+            // 1. Validar empleado
             let empSeleccionado = document.querySelector('input[name="empleado"]:checked');
             
             if (!empSeleccionado) {
@@ -163,17 +162,14 @@
                     comentarios: document.getElementById("comentarios").value
                 };
 
-                // 3. ENVIAR (La parte crítica)
+                // 3. ENVIAR (Con espera de 1 segundo para Xiaomi/Poco)
                 tg.sendData(JSON.stringify(datos)); 
                 
-                // 4. ESPERAR 1 SEGUNDO ANTES DE CERRAR
-                // Esto es vital para celulares Xiaomi/Poco
                 setTimeout(() => { 
                     tg.close(); 
                 }, 1000);
 
             } catch (error) {
-                // Solo mostramos alerta si algo explota de verdad
                 Telegram.WebApp.showPopup({
                     title: 'Error',
                     message: 'Error técnico: ' + error.message
