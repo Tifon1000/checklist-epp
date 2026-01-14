@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salida Protección Ferroviaria</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            font-family: sans-serif;
+            padding: 15px;
+            font-size: 14px;
+        }
+        h2 { text-align: center; color: var(--tg-theme-button-color, #2481cc); border-bottom: 2px solid #ccc; padding-bottom: 10px;}
+        h4 { margin-top: 25px; margin-bottom: 10px; color: #2481cc; border-left: 4px solid #2481cc; padding-left: 8px;}
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+            box-sizing: border-box; font-size: 16px;
+        }
+        
+        /* Estilos Checkboxes */
+        .check-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .check-item { 
+            display: flex; align-items: center; padding: 8px; 
+            background: #f9f9f9; border: 1px solid #eee; border-radius: 5px; 
+        }
+        .check-item input { width: 20px; height: 20px; margin-right: 15px; }
+        .check-item label { font-size: 13px; line-height: 1.2; width: 100%; }
+
+        /* Cajas dinámicas de actividad */
+        .desc-box { display: none; margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px; border-left: 3px solid #2481cc; }
+        .desc-box label { color: #2481cc; font-size: 12px;}
+    </style>
+</head>
+<body>
+
+    <h2>🚆 Salida Protección Ferroviaria</h2>
+
+    <h4>1. Responsables y Cuadrilla</h4>
+    
+    <div class="form-group">
+        <label>Fecha de Actividad:</label>
+        <input type="date" id="fecha">
+    </div>
+
+    <div class="form-group">
+        <label>Responsable del Vehículo:</label>
+        <select id="responsable_vehiculo">
+            <option value="" disabled selected>-- Selecciona --</option>
+            </select>
+    </div>
+
+    <div class="form-group">
+        <label>Ingeniero a Cargo:</label>
+        <select id="ingeniero_cargo">
+            <option value="" disabled selected>-- Selecciona --</option>
+            </select>
+    </div>
+
+    <label>Integrantes de la Cuadrilla:</label>
+    <div class="check-grid" id="lista-cuadrilla">
+        </div>
+
+    <h4>2. Unidad y Ubicación</h4>
+
+    <div class="form-group">
+        <label>Unidad Asignada:</label>
+        <select id="unidad">
+            <option value="" disabled selected>-- Selecciona Unidad --</option>
+            <option value="CHR-248 YM1348A">CHR-248 YM1348A</option>
+            <option value="CHR-277 XW16358">CHR-277 XW16358</option>
+            <option value="HR-446 XM9740B">HR-446 XM9740B</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Localidad de Retiro/Regreso:</label>
+        <select id="localidad_retiro">
+            <option value="" disabled selected>-- Selecciona Localidad --</option>
+            <option value="Orizaba, Ver">Orizaba, Ver</option>
+            <option value="Cordoba, Ver">Cordoba, Ver</option>
+            <option value="Jesus de Nazareno, Pue">Jesus de Nazareno, Pue</option>
+            <option value="Puente Colorado, Pue">Puente Colorado, Pue</option>
+            <option value="Cañada, Pue">Cañada, Pue</option>
+            <option value="San Antonio Soledad, Pue">San Antonio Soledad, Pue</option>
+        </select>
+    </div>
+
+    <h4>3. Programa de Trabajo</h4>
+    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Selecciona el tipo de actividad para describir los detalles:</p>
+
+    <div class="check-grid">
+        <div class="check-item">
+            <input type="checkbox" id="chk_prev" onchange="toggleDesc('box_prev')">
+            <label for="chk_prev">Mantenimiento Preventivo</label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" id="chk_falla" onchange="toggleDesc('box_falla')">
+            <label for="chk_falla">Se atiende reporte de falla</label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" id="chk_prog" onchange="toggleDesc('box_prog')">
+            <label for="chk_prog">Se realiza actividad programada</label>
+        </div>
+    </div>
+
+    <div id="box_prev" class="desc-box">
+        <label>📝 Detalles del Preventivo (Región/PKs):</label>
+        <textarea id="txt_prev" rows="2" placeholder="Ej. Limpieza en PK-250..."></textarea>
+    </div>
+    
+    <div id="box_falla" class="desc-box">
+        <label>🚨 Detalles de la Falla (Lugar/Falla):</label>
+        <textarea id="txt_falla" rows="2" placeholder="Ej. RDIG Azumbilla perdida de enlace..."></textarea>
+    </div>
+
+    <div id="box_prog" class="desc-box">
+        <label>📅 Detalles Actividad Programada:</label>
+        <textarea id="txt_prog" rows="2" placeholder="Ej. Revisión trimestral..."></textarea>
+    </div>
+
+    <div class="form-group" style="margin-top: 15px;">
+        <label>¿Sale a Taller? (Opcional)</label>
+        <select id="taller">
+            <option value="No" selected>No, sale a trabajo</option>
+            <option value='Taller "Rosales", Orizaba, Ver'>Taller "Rosales", Orizaba, Ver</option>
+            <option value='Agencia RISPE Automotriz, Orizaba, Ver'>Agencia RISPE Automotriz, Orizaba, Ver</option>
+            <option value='Otras'>Otras (Especificar abajo)</option>
+        </select>
+    </div>
+
+    <h4>4. Material y Herramienta</h4>
+    <div class="check-grid" id="lista-materiales">
+        </div>
+    
+    <div class="form-group" style="margin-top: 10px;">
+        <label>Otro material:</label>
+        <input type="text" id="material_extra" placeholder="Especifique...">
+    </div>
+
+    <br><br>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.setText("FIRMAR Y ENVIAR");
+        tg.MainButton.show();
+
+        document.getElementById('fecha').valueAsDate = new Date();
+
+        // --- DATOS MAESTROS ---
+        const empleados = [
+            "Alexis Dominguez Ontiveros - 402588",
+            "Alberto Hernandez Alvarado - 401661",
+            "Enrique Lázaro Perez - 402401",
+            "Jesus Antonio Martinez Peralta - 402581",
+            "Luis Alberto Martinez Cruz - 402582",
+            "Octavio Elizalde Trujillo - 401145",
+            "Adrian Hernandez Pastrana - 200510",
+            "Jose Gregorio Valdez Rangel - 200507",
+            "Marcos Miranda Rodriguez - 200763"
+        ];
+
+        const ingenieros = [
+            "Adrian Hernandez Pastrana - 200510",
+            "Jose Gregorio Valdez Rangel - 200507",
+            "Marcos Miranda Rodriguez - 200763"
+        ];
+
+        const herramientas = [
+            "Aceite para ILPAC's", "APT", "Amoladora", 
+            "Bomba electrica para regar", "Batería Marca EPCOM", "Desbrozadora",
+            "Escalera de Extension", "Escalera Tipo Tijera", "Escoba",
+            "Gato de Esfuerzo", "Luminarios/Balastras", "Kit Medidor Tierra Física",
+            "Kit para soldar cable", "Machete", "Maletin de Herramienta",
+            "Medidor de Intensidad", "Monitor de Servicio", "Motosierra",
+            "Motosierra telescopica", "Multimetro", "Pala", "Pico", 
+            "Planta de Emergencia", "Planta de Soldar", "Raspador", 
+            "Taladro", "Taladro para Macroposte"
+        ];
+
+        // --- INICIALIZAR LISTAS ---
+        const selResp = document.getElementById('responsable_vehiculo');
+        empleados.forEach(e => selResp.add(new Option(e, e)));
+
+        const selIng = document.getElementById('ingeniero_cargo');
+        ingenieros.forEach(i => selIng.add(new Option(i, i)));
+
+        const divCuadrilla = document.getElementById('lista-cuadrilla');
+        empleados.forEach((emp, i) => {
+            divCuadrilla.innerHTML += `
+                <div class="check-item">
+                    <input type="checkbox" name="cuadrilla" value="${emp}" id="cua${i}">
+                    <label for="cua${i}">${emp}</label>
+                </div>`;
+        });
+
+        const divMat = document.getElementById('lista-materiales');
+        herramientas.forEach((h, i) => {
+            divMat.innerHTML += `
+                <div class="check-item">
+                    <input type="checkbox" name="herramienta" value="${h}" id="mat${i}">
+                    <label for="mat${i}">${h}</label>
+                </div>`;
+        });
+
+        // --- FUNCIÓN DINÁMICA DE ACTIVIDADES ---
+        window.toggleDesc = function(boxId) {
+            let box = document.getElementById(boxId);
+            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // --- LÓGICA DE ENVÍO ---
+        Telegram.WebApp.onEvent('mainButtonClicked', function(){
+            
+            // Validaciones (Solo las críticas)
+            if(!document.getElementById("responsable_vehiculo").value) return alert("❌ Falta Responsable");
+            if(!document.getElementById("unidad").value) return alert("❌ Falta Unidad");
+            if(!document.getElementById("localidad_retiro").value) return alert("❌ Falta Localidad");
+
+            // 1. CONSTRUIR DESCRIPCIÓN CONCATENADA (Tu solución mágica)
+            let descripcionFinal = "";
+            
+            if(document.getElementById("chk_prev").checked) {
+                descripcionFinal += "Mantenimiento Preventivo:\n" + document.getElementById("txt_prev").value + "\n\n";
+            }
+            if(document.getElementById("chk_falla").checked) {
+                descripcionFinal += "Se atiende reporte de falla:\n" + document.getElementById("txt_falla").value + "\n\n";
+            }
+            if(document.getElementById("chk_prog").checked) {
+                descripcionFinal += "Se realiza actividad programada:\n" + document.getElementById("txt_prog").value + "\n\n";
+            }
+
+            if(descripcionFinal === "") return alert("❌ Debes seleccionar al menos una actividad.");
+
+            // 2. Recolectar Resto de Datos
+            let cuadrilla = Array.from(document.querySelectorAll('input[name="cuadrilla"]:checked')).map(cb => cb.value).join(", ");
+            let materiales = Array.from(document.querySelectorAll('input[name="herramienta"]:checked')).map(cb => cb.value);
+            let extra = document.getElementById("material_extra").value;
+            if(extra) materiales.push(extra);
+
+            let datos = {
+                tipo_reporte: 'SALIDA_FERROVIARIA',
+                fecha: document.getElementById("fecha").value,
+                responsable: document.getElementById("responsable_vehiculo").value,
+                ingeniero: document.getElementById("ingeniero_cargo").value,
+                cuadrilla: cuadrilla,
+                unidad: document.getElementById("unidad").value,
+                localidad: document.getElementById("localidad_retiro").value,
+                actividad_descripcion: descripcionFinal, // <--- Aquí va el texto ordenado
+                taller: document.getElementById("taller").value,
+                materiales: materiales.join(", ")
+            };
+
+            // Enviar
+            tg.sendData(JSON.stringify(datos)); 
+            Telegram.WebApp.showPopup({
+                title: '✅ Salida Generada',
+                message: 'Datos enviados correctamente.\nPresiona OK para cerrar.',
+                buttons: [{type: 'ok', id: 'ok'}]
+            }, function(btn) {
+                if (btn === 'ok') tg.close();
+            });
+        });
+    </script>
+</body>
+</html>
