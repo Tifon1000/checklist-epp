@@ -14,7 +14,7 @@
             font-size: 14px;
         }
         h2 { text-align: center; color: var(--tg-theme-button-color, #2481cc); border-bottom: 2px solid #ccc; padding-bottom: 10px;}
-        h4 { margin-top: 25px; margin-bottom: 10px; color: #2481cc; border-left: 4px solid #2481cc; padding-left: 8px;}
+        h4 { margin-top: 25px; margin-bottom: 10px; color: #2481cc; border-left: 4px solid #2481cc; padding-left: 8px; background-color: #f0f8ff; padding: 5px;}
         
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -34,7 +34,8 @@
 
         /* Cajas dinámicas de actividad */
         .desc-box { display: none; margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px; border-left: 3px solid #2481cc; }
-        .desc-box label { color: #2481cc; font-size: 12px;}
+        .desc-box label { color: #2481cc; font-size: 12px; font-weight: bold;}
+        .desc-box textarea { border: 1px solid #2481cc; }
     </style>
 </head>
 <body>
@@ -72,23 +73,14 @@
         <label>Unidad Asignada:</label>
         <select id="unidad">
             <option value="" disabled selected>-- Selecciona Unidad --</option>
-            <option value="CHR-248 YM1348A">CHR-248 YM1348A</option>
-            <option value="CHR-277 XW16358">CHR-277 XW16358</option>
-            <option value="HR-446 XM9740B">HR-446 XM9740B</option>
-        </select>
+            </select>
     </div>
 
     <div class="form-group">
         <label>Localidad de Retiro/Regreso:</label>
         <select id="localidad_retiro">
             <option value="" disabled selected>-- Selecciona Localidad --</option>
-            <option value="Orizaba, Ver">Orizaba, Ver</option>
-            <option value="Cordoba, Ver">Cordoba, Ver</option>
-            <option value="Jesus de Nazareno, Pue">Jesus de Nazareno, Pue</option>
-            <option value="Puente Colorado, Pue">Puente Colorado, Pue</option>
-            <option value="Cañada, Pue">Cañada, Pue</option>
-            <option value="San Antonio Soledad, Pue">San Antonio Soledad, Pue</option>
-        </select>
+            </select>
     </div>
 
     <h4>3. Programa de Trabajo</h4>
@@ -110,12 +102,12 @@
     </div>
 
     <div id="box_prev" class="desc-box">
-        <label>📝 Detalles del Preventivo (Región/PKs):</label>
+        <label>📝 Detalles del Preventivo:</label>
         <textarea id="txt_prev" rows="2" placeholder="Ej. Limpieza en PK-250..."></textarea>
     </div>
     
     <div id="box_falla" class="desc-box">
-        <label>🚨 Detalles de la Falla (Lugar/Falla):</label>
+        <label>🚨 Detalles de la Falla:</label>
         <textarea id="txt_falla" rows="2" placeholder="Ej. RDIG Azumbilla perdida de enlace..."></textarea>
     </div>
 
@@ -130,7 +122,7 @@
             <option value="No" selected>No, sale a trabajo</option>
             <option value='Taller "Rosales", Orizaba, Ver'>Taller "Rosales", Orizaba, Ver</option>
             <option value='Agencia RISPE Automotriz, Orizaba, Ver'>Agencia RISPE Automotriz, Orizaba, Ver</option>
-            <option value='Otras'>Otras (Especificar abajo)</option>
+            <option value='Otras'>Otras (Especificar en actividad)</option>
         </select>
     </div>
 
@@ -153,7 +145,7 @@
 
         document.getElementById('fecha').valueAsDate = new Date();
 
-        // --- DATOS MAESTROS ---
+        // --- DATOS MAESTROS (Cargados de tus PDFs y Capturas) ---
         const empleados = [
             "Alexis Dominguez Ontiveros - 402588",
             "Alberto Hernandez Alvarado - 401661",
@@ -171,6 +163,21 @@
             "Jose Gregorio Valdez Rangel - 200507",
             "Marcos Miranda Rodriguez - 200763"
         ];
+        
+        const unidades = [
+            "CHR-248 YM1348A",
+            "CHR-277 XW16358",
+            "HR-446 XM9740B"
+        ];
+
+        const localidades = [
+            "Orizaba, Ver",
+            "Cordoba, Ver",
+            "Jesus de Nazareno, Pue",
+            "Puente Colorado, Pue",
+            "Cañada, Pue",
+            "San Antonio Soledad, Pue"
+        ];
 
         const herramientas = [
             "Aceite para ILPAC's", "APT", "Amoladora", 
@@ -185,12 +192,17 @@
         ];
 
         // --- INICIALIZAR LISTAS ---
-        const selResp = document.getElementById('responsable_vehiculo');
-        empleados.forEach(e => selResp.add(new Option(e, e)));
+        const llenarSelect = (id, lista) => {
+            const select = document.getElementById(id);
+            lista.forEach(item => select.add(new Option(item, item)));
+        };
 
-        const selIng = document.getElementById('ingeniero_cargo');
-        ingenieros.forEach(i => selIng.add(new Option(i, i)));
+        llenarSelect('responsable_vehiculo', empleados);
+        llenarSelect('ingeniero_cargo', ingenieros);
+        llenarSelect('unidad', unidades);
+        llenarSelect('localidad_retiro', localidades);
 
+        // Checklist Cuadrilla
         const divCuadrilla = document.getElementById('lista-cuadrilla');
         empleados.forEach((emp, i) => {
             divCuadrilla.innerHTML += `
@@ -200,6 +212,7 @@
                 </div>`;
         });
 
+        // Checklist Herramientas
         const divMat = document.getElementById('lista-materiales');
         herramientas.forEach((h, i) => {
             divMat.innerHTML += `
@@ -220,23 +233,28 @@
             
             // Validaciones (Solo las críticas)
             if(!document.getElementById("responsable_vehiculo").value) return alert("❌ Falta Responsable");
+            if(!document.getElementById("ingeniero_cargo").value) return alert("❌ Falta Ingeniero");
             if(!document.getElementById("unidad").value) return alert("❌ Falta Unidad");
             if(!document.getElementById("localidad_retiro").value) return alert("❌ Falta Localidad");
 
-            // 1. CONSTRUIR DESCRIPCIÓN CONCATENADA (Tu solución mágica)
+            // 1. CONSTRUIR DESCRIPCIÓN CONCATENADA
             let descripcionFinal = "";
+            let hayActividad = false;
             
             if(document.getElementById("chk_prev").checked) {
                 descripcionFinal += "Mantenimiento Preventivo:\n" + document.getElementById("txt_prev").value + "\n\n";
+                hayActividad = true;
             }
             if(document.getElementById("chk_falla").checked) {
                 descripcionFinal += "Se atiende reporte de falla:\n" + document.getElementById("txt_falla").value + "\n\n";
+                hayActividad = true;
             }
             if(document.getElementById("chk_prog").checked) {
                 descripcionFinal += "Se realiza actividad programada:\n" + document.getElementById("txt_prog").value + "\n\n";
+                hayActividad = true;
             }
 
-            if(descripcionFinal === "") return alert("❌ Debes seleccionar al menos una actividad.");
+            if(!hayActividad) return alert("❌ Debes seleccionar al menos una actividad.");
 
             // 2. Recolectar Resto de Datos
             let cuadrilla = Array.from(document.querySelectorAll('input[name="cuadrilla"]:checked')).map(cb => cb.value).join(", ");
@@ -249,12 +267,12 @@
                 fecha: document.getElementById("fecha").value,
                 responsable: document.getElementById("responsable_vehiculo").value,
                 ingeniero: document.getElementById("ingeniero_cargo").value,
-                cuadrilla: cuadrilla,
+                cuadrilla: cuadrilla || "Solo Responsable",
                 unidad: document.getElementById("unidad").value,
                 localidad: document.getElementById("localidad_retiro").value,
                 actividad_descripcion: descripcionFinal, // <--- Aquí va el texto ordenado
                 taller: document.getElementById("taller").value,
-                materiales: materiales.join(", ")
+                materiales: materiales.join(", ") || "Ninguno"
             };
 
             // Enviar
