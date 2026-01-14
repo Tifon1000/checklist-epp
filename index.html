@@ -134,32 +134,21 @@
             });
         }
 
-        // 5. Lógica de Envío CON DIAGNÓSTICO
+        // 5. Lógica de Envío FINAL (PRODUCCIÓN)
         Telegram.WebApp.onEvent('mainButtonClicked', function(){
             
-            // DIAGNÓSTICO 1: Ver si el botón responde
-            Telegram.WebApp.showPopup({
-                title: 'Depuración',
-                message: '1. Botón presionado. Buscando empleado...'
-            });
-
-            // Validar empleado
+            // 1. Validar empleado (Sin alertas, directo al grano)
             let empSeleccionado = document.querySelector('input[name="empleado"]:checked');
             
             if (!empSeleccionado) {
-                // Si entra aquí, es que no detecta el radio button
                 Telegram.WebApp.showPopup({
-                    title: 'Error',
-                    message: '❌ No se ha seleccionado ningún empleado.'
+                    title: 'Falta información',
+                    message: '❌ Por favor, selecciona tu nombre antes de enviar.'
                 });
                 return;
             }
 
-            // DIAGNÓSTICO 2: Empleado encontrado
-            // (Esto es solo para saber que pasó la validación)
-            // alert("Empleado: " + empSeleccionado.value); 
-
-            // Recolectar EPP
+            // 2. Recolectar datos
             try {
                 let reporteEPP = {};
                 document.querySelectorAll('input.status:checked').forEach(radio => {
@@ -173,21 +162,21 @@
                     epp: reporteEPP,
                     comentarios: document.getElementById("comentarios").value
                 };
-                
-                // DIAGNÓSTICO 3: Datos listos
-                // alert("Datos listos para enviar. Intentando sendData...");
 
-                // Enviar
+                // 3. ENVIAR (La parte crítica)
                 tg.sendData(JSON.stringify(datos)); 
                 
-                // Cierre manual por si acaso (a veces Android lo necesita)
-                setTimeout(() => { tg.close(); }, 500);
+                // 4. ESPERAR 1 SEGUNDO ANTES DE CERRAR
+                // Esto es vital para celulares Xiaomi/Poco
+                setTimeout(() => { 
+                    tg.close(); 
+                }, 1000);
 
             } catch (error) {
-                // DIAGNÓSTICO 4: Si hay error técnico
+                // Solo mostramos alerta si algo explota de verdad
                 Telegram.WebApp.showPopup({
-                    title: 'Error Crítico',
-                    message: 'Hubo un error en el código: ' + error.message
+                    title: 'Error',
+                    message: 'Error técnico: ' + error.message
                 });
             }
         });
