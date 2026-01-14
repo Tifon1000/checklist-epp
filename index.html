@@ -181,7 +181,7 @@
                 tg.sendData(JSON.stringify(datos)); 
                 
                 // Cierre manual por si acaso (a veces Android lo necesita)
-                setTimeout(() => { tg.close(); }, 100);
+                setTimeout(() => { tg.close(); }, 500);
 
             } catch (error) {
                 // DIAGNÓSTICO 4: Si hay error técnico
