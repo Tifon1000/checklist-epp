@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Odómetros</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            font-family: sans-serif;
+            padding: 15px;
+            font-size: 14px;
+        }
+        h2 { text-align: center; color: var(--tg-theme-button-color, #2481cc); border-bottom: 2px solid #ccc; padding-bottom: 10px;}
+        h4 { margin-top: 25px; margin-bottom: 10px; color: #2481cc; border-left: 4px solid #2481cc; padding-left: 8px; background-color: #f0f8ff; padding: 5px;}
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+            box-sizing: border-box; font-size: 16px;
+        }
+
+        /* Tarjeta de Vehículo */
+        .vehicle-card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .vehicle-header {
+            font-weight: bold;
+            color: #2481cc;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        .remove-btn {
+            background: #ffdddd; color: #d32f2f; border: none; padding: 5px 10px;
+            border-radius: 4px; font-size: 12px; cursor: pointer;
+        }
+        
+        /* Contenedor para inputs extra (Motor/Vacío) */
+        .extra-readings {
+            display: none; /* Oculto por defecto */
+            background-color: #eef6fc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 1px dashed #2481cc;
+        }
+        
+        /* Botón Agregar */
+        #btn-add-vehicle {
+            background-color: #e3f2fd; color: #2481cc; border: 1px dashed #2481cc;
+            width: 100%; padding: 12px; border-radius: 8px; font-weight: bold;
+            cursor: pointer; margin-bottom: 30px; display: flex; align-items: center; justify-content: center;
+        }
+        #btn-add-vehicle:hover { background-color: #d1e9fc; }
+        #btn-add-vehicle span { font-size: 18px; margin-right: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <h2>🔢 Control de Odómetros</h2>
+
+    <!-- 1. Datos Generales -->
+    <h4>1. Datos Generales</h4>
+    <div class="form-group">
+        <label>Fecha:</label>
+        <input type="date" id="fecha">
+    </div>
+    <div class="form-group">
+        <label>Usuario que reporta:</label>
+        <select id="usuario_reporta">
+            <option value="" disabled selected>-- Selecciona tu nombre --</option>
+        </select>
+    </div>
+
+    <!-- 2. Vehículos Dinámicos -->
+    <h4>2. Registro de Unidades</h4>
+    <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+        Selecciona "Maquinaria" si necesitas registrar horas de motor y vacío.
+    </p>
+
+    <div id="vehicles-container"></div>
+
+    <button id="btn-add-vehicle" onclick="addVehicle()">
+        <span>+</span> Agregar Unidad
+    </button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.setText("ENVIAR REPORTE");
+        tg.MainButton.show();
+
+        document.getElementById('fecha').valueAsDate = new Date();
+
+        // --- DATOS MAESTROS ---
+        const empleados = [
+            "Alexis Dominguez Ontiveros - 402588",
+            "Alberto Hernandez Alvarado - 401661",
+            "Enrique Lázaro Perez - 402401",
+            "Jesus Antonio Martinez Peralta - 402581",
+            "Jesus Mario Ascencio Enriquez - 403023",
+            "Luis Alberto Martinez Cruz - 402582",
+            "Octavio Elizalde Trujillo - 401145",
+            "Adrian Hernandez Pastrana - 200510",
+            "Jose Gregorio Valdez Rangel - 200507",
+            "Marcos Miranda Rodriguez - 200763"
+        ];
+
+        const unidades = [
+            "CHR-248 YM1348A", "CHR-277 XW16358", "CHR-364 XG1089A", "HR-446 XM9740B",
+            "Vactor V-10", "Grúa G-05", "Retroexcavadora R-01" // Ejemplos extra para probar maquinaria
+        ];
+
+        const selectUser = document.getElementById('usuario_reporta');
+        empleados.forEach(emp => selectUser.add(new Option(emp, emp)));
+
+        // --- LÓGICA DE VEHÍCULOS ---
+        let vehicleCount = 0;
+        const maxVehicles = 3;
+
+        function addVehicle() {
+            if (vehicleCount >= maxVehicles) {
+                Telegram.WebApp.showPopup({message: 'Máximo 3 vehículos permitidos.'});
+                return;
+            }
+
+            vehicleCount++;
+            const container = document.getElementById('vehicles-container');
+            const vehicleId = `v_${Date.now()}`;
+
+            const html = `
+            <div class="vehicle-card" id="${vehicleId}">
+                <div class="vehicle-header">
+                    <span>Unidad #${vehicleCount}</span>
+                    ${vehicleCount > 1 ? `<button type="button" class="remove-btn" onclick="removeVehicle('${vehicleId}')">Eliminar 🗑️</button>` : ''}
+                </div>
+
+                <!-- Selección de Unidad -->
+                <div class="form-group">
+                    <label>Unidad:</label>
+                    <select class="input-unidad">
+                        <option value="" disabled selected>-- Selecciona --</option>
+                        ${unidades.map(u => `<option value="${u}">${u}</option>`).join('')}
+                    </select>
+                </div>
+
+                <!-- Tipo de Registro (Gatillo para mostrar campos extra) -->
+                <div class="form-group">
+                    <label>Tipo de Registro:</label>
+                    <select class="input-mode" onchange="toggleFields('${vehicleId}', this.value)">
+                        <option value="simple" selected>🚗 Solo Kilometraje</option>
+                        <option value="complex">🚜 Maquinaria (Km + Motor + Vacío)</option>
+                    </select>
+                </div>
+
+                <!-- Campo Principal (Siempre visible) -->
+                <div class="form-group">
+                    <label>Kilometraje (Km):</label>
+                    <input type="number" class="input-km" placeholder="Ej. 125000" inputmode="numeric">
+                </div>
+
+                <!-- Campos Extra (Ocultos por defecto) -->
+                <div class="extra-readings" id="extra_${vehicleId}">
+                    <div class="form-group">
+                        <label>Horas Motor:</label>
+                        <input type="number" step="0.1" class="input-motor" placeholder="Ej. 1540.5">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Horas Vacío:</label>
+                        <input type="number" step="0.1" class="input-vacio" placeholder="Ej. 230.0">
+                    </div>
+                </div>
+
+                <!-- Combustible y Observaciones (Siempre visibles) -->
+                <div class="form-group">
+                    <label>Nivel de Combustible:</label>
+                    <select class="input-fuel">
+                        <option value="" disabled selected>-- Nivel --</option>
+                        <option value="Reserva">Reserva (E)</option>
+                        <option value="1/4">1/4 de Tanque</option>
+                        <option value="1/2">1/2 Tanque</option>
+                        <option value="3/4">3/4 de Tanque</option>
+                        <option value="Lleno">Lleno (F)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Observaciones:</label>
+                    <textarea class="input-obs" rows="2" placeholder="Opcional..."></textarea>
+                </div>
+            </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', html);
+            updateAddButton();
+        }
+
+        // Función para mostrar/ocultar campos de horas
+        window.toggleFields = function(id, mode) {
+            const extraDiv = document.getElementById(`extra_${id}`);
+            if (mode === 'complex') {
+                extraDiv.style.display = 'block';
+            } else {
+                extraDiv.style.display = 'none';
+                // Limpiar valores si se oculta para no enviar basura
+                extraDiv.querySelector('.input-motor').value = '';
+                extraDiv.querySelector('.input-vacio').value = '';
+            }
+        };
+
+        function removeVehicle(id) {
+            document.getElementById(id).remove();
+            vehicleCount--;
+            renumberCards();
+            updateAddButton();
+        }
+
+        function updateAddButton() {
+            const btn = document.getElementById('btn-add-vehicle');
+            btn.style.display = (vehicleCount >= maxVehicles) ? 'none' : 'flex';
+        }
+
+        function renumberCards() {
+            const cards = document.querySelectorAll('.vehicle-card');
+            cards.forEach((card, index) => {
+                card.querySelector('.vehicle-header span').innerText = `Unidad #${index + 1}`;
+            });
+        }
+
+        // Iniciar con 1 vehículo
+        addVehicle();
+
+        // --- ENVÍO ---
+        Telegram.WebApp.onEvent('mainButtonClicked', function(){
+            const usuario = document.getElementById("usuario_reporta").value;
+            if(!usuario) return alert("❌ Falta el Usuario.");
+
+            const cards = document.querySelectorAll('.vehicle-card');
+            let datosVehiculos = [];
+            let error = false;
+
+            cards.forEach(card => {
+                const unidad = card.querySelector('.input-unidad').value;
+                const mode = card.querySelector('.input-mode').value;
+                const km = card.querySelector('.input-km').value;
+                const fuel = card.querySelector('.input-fuel').value;
+                const obs = card.querySelector('.input-obs').value || "Sin observaciones";
+                
+                // Validación básica
+                if (!unidad || !km || !fuel) {
+                    error = true;
+                    card.style.border = "2px solid red";
+                    return; // Salta al siguiente pero marca error
+                }
+
+                // Validación específica para maquinaria
+                let hMotor = "N/A";
+                let hVacio = "N/A";
+
+                if (mode === 'complex') {
+                    hMotor = card.querySelector('.input-motor').value;
+                    hVacio = card.querySelector('.input-vacio').value;
+
+                    if (!hMotor || !hVacio) {
+                        error = true;
+                        card.style.border = "2px solid red";
+                        alert("❌ En modo Maquinaria, las horas de Motor y Vacío son obligatorias.");
+                        return;
+                    }
+                }
+
+                datosVehiculos.push({
+                    unidad: unidad,
+                    modo: mode === 'complex' ? 'MAQUINARIA' : 'VEHICULO',
+                    kilometraje: km,
+                    horas_motor: hMotor,
+                    horas_vacio: hVacio,
+                    combustible: fuel,
+                    observaciones: obs
+                });
+                
+                // Resetear borde si estaba bien
+                card.style.border = "1px solid #ddd";
+            });
+
+            if(error && datosVehiculos.length !== cards.length) return; // Si hubo error, no enviar
+            if(error) return alert("❌ Revisa los campos marcados en rojo.");
+
+            let payload = {
+                tipo_reporte: 'ODOMETROS_COMPLETO',
+                fecha: document.getElementById("fecha").value,
+                usuario: usuario,
+                vehiculos: datosVehiculos
+            };
+
+            tg.sendData(JSON.stringify(payload));
+        });
+    </script>
+</body>
+</html>
+
